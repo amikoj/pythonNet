@@ -19,11 +19,11 @@ def main():
     global mode
     
     try:
-        opts,params=getopt.getopt(sys.argv[1:],"c:s:t:h:p:m",["client","server","target","port","mode"])
+        opts,params=getopt.getopt(sys.argv[1:],"csh:t:p:m:",["client","server","help","target","port","mode"])
     except getopt.GetoptError as error:
         print str(error)
         sys.exit(0)
-        
+    print opts
     for opt,arg in opts:
         if opt in ("-c","--client"):
             client=True
@@ -41,14 +41,16 @@ def main():
         SystemExit(BaseException("Missing specified connection mode."))
             
     if client:
-        start_client(mode)
+        start_client(mode.strip())
     else:
-        start_server(mode)
+        start_server(mode.strip())
 
 
 def start_client(mode="tcp"):
     global target
     global port
+    buffer=""
+    response=""
     '''
     start up connection client .
     '''
@@ -61,16 +63,20 @@ def start_client(mode="tcp"):
             client.send(a)
        
         while True:
-            buffer=""
-            response=""
+            response=client.recv(2048)
+            buffer+=response
             a=""
-            while "\n" not in response:
-                response=client.recv(2048)
-                buffer+=response
-            print "Received buffer:%s" % buffer
-            a=raw_input("send to server:")
-            if len(a):
-                client.send(a)  
+            while  len(response)<2048:
+                print "Received buffer:%s" % buffer
+                a=raw_input("send to server:")
+                if len(a):
+                    if a== "close":
+                        client_socket.close()
+                    else:                    
+                        client.send(a)                  
+                response=""
+                buffer=""
+                break 
     elif mode == "udp":
         print "Udp socket client.target is %s,and port is %d" % (target,port)
         client=socket.socket(socket.AF_INET,socket.SOCK_DGRAM)
@@ -78,15 +84,21 @@ def start_client(mode="tcp"):
         if len(a):
             client.sendto(a,(target,port))
         while True:
-            buffer=""
-            response=""
+            response,addr=client.recvfrom(4096)
+            buffer+=response
             a=""
-            while "" in response:
-                response,addr=client.recvfrom(4096)
-            print "Received buffer:%s" % buffer
-            a=raw_input("send to server:")
-            if len(a):
-                client.send(a)            
+            while len(response) <4096:
+                print "Received buffer:%s" % buffer
+                a=raw_input("send to server:")
+                if len(a):
+                    if a=="close":
+                        client.close()
+                    else:
+                        client.sendto(a,addr)                    
+                response=""
+                buffer=""
+                break
+                    
                 
     
     
@@ -96,17 +108,22 @@ def start_server(mode='tcp'):
     '''
      start up connection server
     '''
+    print "mode:",mode
     if mode == "tcp":
         print "Tcp socket server."
         server_socket=socket.socket(socket.AF_INET,socket.SOCK_STREAM)
+        server_socket.bind((target,port))
+        server_socket.listen(5)
+        while True:
+            client_socket,addr=server_socket.accept()
+            client_handler=threading.Thread(target=handler_socket,args=(client_socket,addr,mode))
+            client_handler.start()           
+        
     elif mode == "udp":
         print "Udp socket server"
-        sever_socket=socket.socket(socket.AF_INET,socket.SOCK_DGRAM)
-    server_socket.bind((target,port))
-    server_socket.listen(5)
-    while True:
-        client_socket,addr=server_socket.accept()
-        client_handler=threading.Thread(target=handler_socket,args=(client_socket,addr,mode))
+        server_socket=socket.socket(socket.AF_INET,socket.SOCK_DGRAM) 
+        server_socket.bind((target,port)) 
+        client_handler=threading.Thread(target=handler_socket,args=(server_socket,None,mode))
         client_handler.start()    
 
 
@@ -123,26 +140,35 @@ def handler_socket(client_socket,addr,mode="tcp"):
             content+=response
             while len(response)<2048:
                 print "content:%s" % content
+                a=raw_input("send to:")
+                if len(a):
+                    if a== "close":
+                        client_socket.close()
+                    else:                    
+                        client_socket.send(a)                
                 response=""
                 content=""
-            a=raw_input("send to:")
-            if len(a):
-                client_socket.send(a)
+                break
+           
             
         
     elif mode == "udp":
-        print "Accepted udp connection from:%s:%d" % (addr[0],addr[1])
+        print "Accepted udp connection from"
         while True:
-            response=client_socket.recvfrom(2048)
+            response,addr0=client_socket.recvfrom(2048)
             content+=response
             while len(response) <2048:
                 print "content:%s" % content
-                response=""
-                content=""
                 a=raw_input("send to:")
                 if len(a):
-                    client_socket.sendto(a,addr)            
-            
+                    if a== "close":
+                        client_socket.close()
+                    else:
+                        client_socket.sendto(a,addr0)                  
+                response=""
+                content=""
+                break
+           
         
 
 if __name__ == "__main__":
