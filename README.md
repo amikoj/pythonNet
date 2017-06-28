@@ -1,2 +1,2 @@
 # pythonNet
-net program of python .
+Python network related practice case
