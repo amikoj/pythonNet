@@ -4,11 +4,7 @@
 # Python network related practice case
 import sys,socket,threading
 
-
-
-
-
-
+## 端口数据转发.
 
 
 def main():
@@ -27,7 +23,7 @@ def main():
         receiver_first=True
     else:
         receiver_first=False
-        server_loop(local_host,local_port,remote_host,remote_port,receiver_first)
+    server_loop(local_host,local_port,remote_host,remote_port,receiver_first)
 
 
 
@@ -53,12 +49,14 @@ def server_loop(local_host,local_port,remote_host,remote_port,receiver_first):
         #Receiver client request of send message.
         print "[==>] Received incoming connection from %s:%d" %(addr[0],addr[1])
         
-        proxy_thread=threading.Thread(proxy_handler,args=(client_socket,remote_host,remote_port,receiver_first))
+        proxy_thread=threading.Thread(target=proxy_handler,args=(client_socket,remote_host,remote_port,receiver_first))
         proxy_thread.start()
                 
         
         
 def proxy_handler(client_socket,remote_host,remote_port,receiver_first):
+
+    print "proxy_handler remote_host:%s,remote_port:%s,receiver_first:%s" %(remote_host,remote_port,receiver_first)
     remote_socket = socket.socket(socket.AF_INET,socket.SOCK_STREAM)
     remote_socket.connect((remote_host,remote_port))
     # receiver ip data from remote host

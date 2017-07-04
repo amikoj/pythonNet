@@ -71,7 +71,7 @@ def start_client(mode="tcp"):
                 a=raw_input("send to server:")
                 if len(a):
                     if a== "close":
-                        client_socket.close()
+                        client.close()
                     else:                    
                         client.send(a)                  
                 response=""
