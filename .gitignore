@@ -5,7 +5,8 @@ __pycache__/
 *.wpr
 # C extensions
 *.so
-
+.idea/*
+/.idea/
 # Distribution / packaging
 .Python
 env/
@@ -99,3 +100,9 @@ ENV/
 
 # mypy
 .mypy_cache/
+
+
+.idea/preferred-vcs.xml
+.idea/workspace.xml
+
+
